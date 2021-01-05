@@ -1,49 +1,52 @@
-# Mobile Web Banking PoC with Angular
+# Use a secret as an environment variable in OpenShift applications
 
-This project illustrates the impelmentation of Component pattern, MVC pattern and Template Method pattern in an Angular-based web
-application.
+Frequently applications need to access some sensitive information, such as passwords and user names, that you do not want developers to have.
+The best practice for protecting sensitive data is to use Secret objects, which provide this information to the applications without exposing
+them in clear text in the application configuration files.
 
-## Architecture
-![Architecture](images/mvcflow1.png)
-![Architecture](images/mvcflow2.png)
+This application illustrates how to implement a secret as an environment variable in Spring Boot OpenShift applications.
 
-MVC (Model View Controler) pattern is the first Graphical User Interface design pattern. There are many variations of MVC pattern,
-for example, MVP (Model View Presenter) pattern and MVVM (Model View View-Model) pattern.
+## Define key-value pairs in the application.properties that use environment variables
+server.servlet.contextPath=/springbootstarter
+demo.secretsPath=${SECRETS_PATH:/deployments}
 
-Model can refer to different things by different programmers. In web applications, we have request data model, response data model and
-view-model. The view model, which refers to the data that the View displays, is undoubtedly the most important one. In this document,
-the model is used interchangeably with view-model .
+Please note that the default value for demo.secretsPath is "/deployments"
 
-A common misconception about MVC (and its variations) is that it divides the whole application into three parts: Model, View and 
-Controller. This is true only for small applications. For middle to large applications, we need to split the application into many 
-small parts, a.k.a, components, and each component serves as a facade that wraps the Model-View-Controller triad. Components 
-communicate with each other directly or via a mutual parent component, as illustrated below.
+## Create the secret
+1. Base64 encode theb secret "/tmp/mydeployments":
+echo /tmp/mydeployments | base64
 
-![Component](images/component1.png)
-![Component](images/component2.png)
+The output from the above command is "L3RtcC9teWRlcGxveW1lbnRzCg=="
 
-Just like in the traditioal OO programming languages (Objective-C, C++, Java, C#, Swict, etc.), there are scenarios where certian JavaScript
-classes have some common functionalities with a little variation. The Template Method pattern is the powerful tool that handles these scenarios
-elegantly, resulting in cleaner code and avoiding duplicate code. The Template Method design pattern is used intensively in this project.
+2. Create secret.yaml:
 
-![TemplateMethod](images/templatemethod1.jpg)
-![TemplateMethod](images/templatemethod2.jpg)
-![TemplateMethod](images/templatemethod3.jpg)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  deploymentPath: L3RtcC9teWRlcGxveW1lbnRzCg==
+  
+3. Create secret
+oc create -f secret.yaml
 
-## Comparison with Redux Pattern
-The design patterns used in this application reflects my vision of how a web application should be structured.
-Please compare this project with my other project [mobileweb-angular-redux-poc](https://github.com/dhui808/mobileweb-angular-redux-poc), 
-which follows the Redux pattern. The Redux pattern results in too much boilerplate code is essentially an anti-pattern.
+4. oc describe secret mysecret
 
-## Build
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Use secret mysecret from springbootstarter-sec application
+1. From OpenShift Developer Perspective, click Project - Development
+2. Click springbootstarter-sec - Environment
+3. Click Add from Config Map or Secret
+4. name: SECRETS_PATH
+5. Select mysecret from "Select a resource" dropdown
+6. Select deploymentPath from "Select a key" dropdown
+7. Click Save
 
-## Start backend mockup server
-see [webservice-mock-server](https://github.com/dhui808/webservice-mock-server)
+## Recreate pod
+1. Click Builds - springbootstarter-sec - Builds - springbootstarter-sec-1
+2. Click Actions - Rebuild
+3. Click Project - Route
+4. Click Location link http://springbootstarter-sec-dannyhui-dev.apps.sandbox.x8i5.p1.openshiftapps.com
+5. Append /springbootstarter/hello to the address in the browser
 
-## Start Development UI server
-Run `ng serve` for a dev server.
 
-## Technology Version
-Angular 9.0.7\
-Typescript 3.7.5
